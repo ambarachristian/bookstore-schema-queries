@@ -86,7 +86,7 @@ Windows 11, VS Code terminal is PowerShell.
 6. `order_items` (foreign keys to orders and books, CHECK quantity > 0, unit price). ✅
 7. Rebuild from zero (01 then 02) from PowerShell and inspect. ✅
 8. Understanding check. ⏭️ skipped
-9. Commit and push.
+9. Commit and push. ✅
 
   - Learner skipped the warm-up again ("step 1"). Accepted. Keep asking at milestone ends (their rule), but don't block on it.
   - M2 · Step 1 given: create `sql/02_schema.sql` with header, `\connect bookstore bookstore_app`, and a DESIGN comment block (columns per table, relationships, choices: one author per book; order_items.unit_price = price paid). Explained normalization (anomalies, 1NF/2NF/3NF), PK, surrogate keys, FK, one-to-many, many-to-many/junction table, composite key.
@@ -129,6 +129,77 @@ Windows 11, VS Code terminal is PowerShell.
 - Data shape for the 20 queries: ~8 authors (one with no books), ~20 books across several genres (some never sold, one with stock 0, one with NULL published_year), ~12 customers in a few cities (some with no orders), ~25 orders over 2025–2026 with all four statuses (pending ones with NULL shipped_date), ~50 order_items.
 - Steps: 1 INSERT authors; 2 books.csv + `\copy`; 3 INSERT customers; 4 orders + order_items; 5 rebuild 01→02→03 and count rows; 6–7 bad-row tests (negative price, bad ISBN, duplicate email, unknown author_id, shipped before ordered, bad status, quantity 0), each must fail with its constraint name. Probably a separate file `sql/03_bad_data_tests.sql` run without ON_ERROR_STOP; 8 understanding check; 9 commit + push.
 
+  - M2 · Step 9 done. Commit `f5377f7` pushed; origin/main matches.
+  - **Milestone 2 complete.**
+  - M3 · Step 1 given: create `sql/03_data.sql` with header, `\connect bookstore bookstore_app`, `TRUNCATE order_items, orders, customers, books, authors RESTART IDENTITY;`, and a 9-row INSERT into authors. Check: `\i`, `SELECT * FROM authors;`, optional `\pset null '(null)'`.
+
+### Sample data (keep consistent across steps)
+Authors (IDs after a fresh load):
+1 Chinua Achebe, Nigeria · 2 Jane Austen, United Kingdom · 3 Gabriel García Márquez, Colombia · 4 Chimamanda Ngozi Adichie, Nigeria · 5 George Orwell, United Kingdom · 6 Haruki Murakami, Japan · 7 Mongo Beti, Cameroon · 8 Toni Morrison, United States (**no books**) · 9 Amina Diallo, NULL country (fictional)
+
+Books (book_id after load · author · genre · price · year · stock):
+1 Things Fall Apart (1, Classic, 12.99, 1958, 14) · 2 No Longer at Ease (1, Literary Fiction, 11.50, 1960, 6) · 3 Arrow of God (1, Literary Fiction, 13.25, 1964, 3) · 4 Pride and Prejudice (2, Classic, 8.99, 1813, 20) · 5 Sense and Sensibility (2, Classic, 8.49, 1811, 9) · 6 Emma (2, Classic, 9.25, 1815, **0**) · 7 One Hundred Years of Solitude (3, Magical Realism, 16.80, 1967, 11) · 8 Love in the Time of Cholera (3, Magical Realism, 15.40, 1985, 5) · 9 Chronicle of a Death Foretold (3, Literary Fiction, 10.90, 1981, 2) · 10 Half of a Yellow Sun (4, Literary Fiction, 14.99, 2006, 8) · 11 Americanah (4, Literary Fiction, 15.99, 2013, 12) · 12 "Dear Ijeawele, or A Feminist Manifesto in Fifteen Suggestions" (4, Essay, 7.99, 2017, 15; comma → quoted in CSV) · 13 Nineteen Eighty-Four (5, Dystopian, 10.99, 1949, 25) · 14 Animal Farm (5, Dystopian, 7.50, 1945, 18) · 15 Homage to Catalonia (5, Essay, 12.00, 1938, 1) · 16 Norwegian Wood (6, Literary Fiction, 13.99, 1987, 7) · 17 Kafka on the Shore (6, Magical Realism, 17.50, 2002, 4) · 18 1Q84 (6, Magical Realism, 24.50, 2009, 2) · 19 Mission to Kala (7, Classic, 11.75, 1957, 6) · 20 The Poor Christ of Bomba (7, Classic, 12.40, 1956, 3) · 21 Harmattan Letters (9, Literary Fiction, 18.00, **NULL year**, 10; fictional)
+- Plan: leave some books never sold (e.g. 3 Arrow of God, 15 Homage to Catalonia, 21 Harmattan Letters).
+
+  - M3 · Step 1 done. 9 authors verified, UTF-8 OK.
+  - M3 · Step 2 given: `data/books.csv` (header + 21 rows above) and one `\copy books (title, isbn, genre, price, published_year, stock, author_id) FROM '/data/books.csv' WITH (FORMAT csv, HEADER true)` line after the authors INSERT. Explained CSV, quoting, COPY vs \copy (pg_read_server_files), HEADER, empty = NULL, one-line rule, constraints still apply.
+
+Customers (customer_id · city · joined_on), emails firstname.lastname@example.com:
+1 Aïcha Bello, Douala, 2025-01-14 · 2 Jean-Paul Mbarga (jeanpaul.mbarga@), Yaoundé, 2025-02-03 · 3 Chidi Okafor, Lagos, 2025-03-22 · 4 Claire Dubois, Paris, 2025-04-10 · 5 Liam O'Brien (liam.obrien@), London, 2025-05-18 · 6 Fatima Njoya, Douala, 2025-07-01 · 7 Emeka Eze, Lagos, 2025-09-09 · 8 Sophie Martin, Paris, 2025-11-25 · 9 Samuel Etoga, Yaoundé, 2026-01-12 · 10 Grace Adeyemi, Lagos, 2026-04-30 · 11 Thomas Wright, London, 2026-08-15 (**no orders**) · 12 Brigitte Ateba, NULL city, 2026-10-02 (**no orders**)
+- M5 note: queries relative to current_date drift over time. Consider a fixed reference date in M5 queries, or accept drift and say so in the README.
+
+  - M3 · Step 2 done. 21 books verified (CRLF CSV loaded fine).
+  - M3 · Step 3 given: 12-row INSERT into customers (list above). Explained '' for apostrophes, ISO date literals, example.com.
+
+Orders (order_id · customer · order_date · shipped_date · status):
+1 c1 2025-02-10 2025-02-12 delivered · 2 c2 2025-03-05 2025-03-08 delivered · 3 c1 2025-04-18 2025-04-21 delivered · 4 c3 2025-05-02 2025-05-06 delivered · 5 c4 2025-06-14 2025-06-16 delivered · 6 c2 2025-07-20 NULL cancelled · 7 c5 2025-08-03 2025-08-05 delivered · 8 c3 2025-09-15 2025-09-19 delivered · 9 c6 2025-10-01 2025-10-03 delivered · 10 c1 2025-11-11 2025-11-14 delivered · 11 c7 2025-12-02 2025-12-09 delivered (7 days) · 12 c4 2025-12-20 2025-12-22 delivered · 13 c8 2026-01-08 2026-01-10 delivered · 14 c3 2026-02-14 2026-02-17 delivered · 15 c9 2026-03-03 2026-03-05 delivered · 16 c6 2026-04-22 NULL cancelled · 17 c1 2026-05-30 2026-06-02 delivered · 18 c10 2026-06-18 2026-06-20 delivered · 19 c5 2026-07-25 2026-07-28 delivered · 20 c3 2026-08-30 2026-09-02 delivered · 21 c7 2026-09-21 2026-09-24 delivered · 22 c9 2026-10-12 2026-10-15 shipped · 23 c1 2026-10-20 2026-10-22 shipped · 24 c10 2026-10-25 NULL pending · 25 c2 2026-10-27 NULL pending
+- Orders per customer: c1 5, c2 3, c3 4, c4–c7 2 each, c8 1, c9 2, c10 2.
+
+### Milestone 3 steps (revised)
+1. Authors INSERT ✅ · 2. books.csv + \copy ✅ · 3. Customers INSERT ✅ · 4. Orders INSERT · 5. order_items.csv + \copy · 6. Rebuild 01→02→03, count rows · 7–8. Bad-row tests · 9. Understanding check · 10. Commit + push
+
+  - M3 · Step 3 done. 12 customers verified.
+  - M3 · Step 4 given: 25-row INSERT into orders (list above). Explained numbers vs quoted values, the FK check, exact lowercase status, NULL shipped_date, row-only rules (an order before the customer joined isn't caught).
+
+Order items (order: book×qty@price), 38 rows, total quantity 48:
+o1: 1×1@11.99*, 13×1@10.99 · o2: 7×1@16.80, 4×2@8.99 · o3: 11×1@15.99 · o4: 1×2@11.99*, 10×1@14.99 · o5: 4×1@8.99, 5×1@8.49 · o6 (cancelled): 18×1@22.00* · o7: 13×2@10.99, 14×1@7.50 · o8: 7×1@16.80, 8×1@15.40 · o9: 19×1@11.75, 20×1@12.40 · o10: 16×1@13.99 · o11: 2×1@11.50, 12×3@7.99 · o12: 13×1@10.99 · o13: 11×1@15.99 · o14: 18×1@24.50, 17×1@17.50 · o15: 19×2@11.75, 1×1@12.99 · o16 (cancelled): 7×1@16.80 · o17: 12×1@7.99, 11×1@15.99 · o18: 4×1@8.99 · o19: 9×1@10.90 · o20: 13×3@10.99, 14×2@7.50 · o21: 20×1@12.40, 1×1@12.99 · o22: 11×2@15.99 · o23: 8×1@15.40 · o24 (pending): 6×1@9.25 (Emma, stock 0) · o25 (pending): 10×1@14.99
+- `*` = older price, below today's books.price (3 lines).
+- Never sold: books 3, 15, 21. Authors with no sales: 8 Morrison (no books), 9 Diallo.
+
+  - M3 · Step 4 done. 25 orders verified (19/2/2/2).
+  - M3 · Step 5 given: `data/order_items.csv` (header + 38 rows above), `\copy order_items (order_id, book_id, quantity, unit_price) FROM '/data/order_items.csv' WITH (FORMAT csv, HEADER true)`. Check: `COPY 38`, `SELECT * FROM order_items WHERE order_id = 11;`.
+
+  - M3 · Step 5 done. 38 lines, qty 48, 3 older-price lines, unsold books 3/15/21 verified.
+  - M3 · Step 6 given: add a row-count query (count(*) + UNION ALL, 5 tables) at the end of 03_data.sql, then full rebuild from PowerShell: 01 (postgres), 02, 03 (bookstore_app), all with `-v ON_ERROR_STOP=1`. Close psql first.
+
+  - M3 · Step 6 done. Counts 9/21/12/25/38 verified, no server errors.
+  - M3 · Step 7 given: new file `sql/03_bad_data_tests.sql` (a second file for M3: a deliberate exception to "one .sql per milestone", told to the learner, who can object). Tests 1–7 on books: negative price, price 0, ISBN with dash, duplicate ISBN, author 99, missing title, UPDATE stock -1. Uses `\echo` labels. Explained reading ERROR/DETAIL, sequence gaps (book_id 22, 23, ... used up by failed inserts), UPDATE.
+
+  - M3 · Step 7 done. 7 errors in the server log with the expected rule names; books 21, book 1 stock 14.
+  - M3 · Step 8 given: tests 8–16 appended. 8 duplicate email, 9 bad email, 10 status 'lost', 11 shipped before ordered, 12 customer 99, 13 quantity 0 (order 1, book 4), 14 duplicate (1,1), 15 DELETE book 13 (sold), 16 DELETE author 1 (has books). Then a UNION ALL count check (must stay 9/21/12/25/38).
+
+  - M3 · Step 8 done. All 16 tests refused with the expected rules (log tally checked); counts 9/21/12/25/38.
+  - **"Finished when", part 1 met: the schema rejects bad data (16 tests).** Part 2 (20 correct queries) is still to do.
+  - M3 · Step 9 given: three questions (RESTART IDENTITY; COPY vs \copy; why "Failing row contains (22, ...)").
+
+  - Learner skipped the M3 questions ("done").
+  - M3 · Step 10 given: `git add sql/03_data.sql sql/03_bad_data_tests.sql data/books.csv data/order_items.csv TUTOR_PROGRESS.md`, commit "Milestone 3: sample data via INSERT and COPY, plus constraint tests", push.
+
+### Milestone 4 plan (draft), file `sql/04_queries_1_10.sql`, one query per step
+- Q1 SELECT + ORDER BY: all books with price, most expensive first.
+- Q2 WHERE (AND/comparison): books with fewer than 5 copies in stock (reorder list).
+- Q3 WHERE with IN / IS NULL / LIKE: e.g. customers in Lagos or Douala; books with no known year.
+- Q4 INNER JOIN: each book with its author's full name (string concatenation `||`).
+- Q5 multi-table JOIN: lines of one order with customer, title and line total (quantity * unit_price).
+- Q6 LEFT JOIN: every author with their books, including authors with none (Morrison); explain RIGHT and FULL JOIN here.
+- Q7 GROUP BY + count: number of titles per genre.
+- Q8 GROUP BY + SUM + JOIN + WHERE: revenue per genre, excluding cancelled orders.
+- Q9 HAVING: customers who spent more than a threshold (excluding cancelled).
+- Q10 ORDER BY + LIMIT with aggregate: top 5 books by copies sold.
+- Then: run the whole file, understanding check, commit + push.
+- Verify each query's result read-only against the sample data before telling the learner what to expect.
+
 ## Next
-- Waiting for "done" on M2 · Step 9. Verify `git log --oneline` (2 commits), `git status` clean apart from TUTOR_PROGRESS.md, origin/main matches.
-- Then: Milestone 2 complete → M3 · Step 1 (INSERT authors).
+- Waiting for "done" on M3 · Step 10. Verify 4 commits? (3 commits: M1, M2, M3), origin/main matches.
+- Then: Milestone 3 complete → M4 · Step 1 (Q1). New file `sql/03_bad_data_tests.sql` (run with `\i`, without ON_ERROR_STOP, so each failure prints and the next test runs). Tests: negative price, price 0, ISBN with a dash, unknown author_id 99, stock -1. Each expects ERROR naming its constraint. Explain reading an error (ERROR line, DETAIL line, constraint name).
+- Then: M3 · Step 8: part 2: duplicate email, bad email, status 'lost', shipped before ordered, quantity 0, duplicate (order, book), delete a sold book (FK refuses), delete an order (CASCADE removes lines — wrap in BEGIN/ROLLBACK so data stays).
