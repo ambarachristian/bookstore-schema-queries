@@ -199,7 +199,27 @@ o1: 1×1@11.99*, 13×1@10.99 · o2: 7×1@16.80, 4×2@8.99 · o3: 11×1@15.99 · 
 - Then: run the whole file, understanding check, commit + push.
 - Verify each query's result read-only against the sample data before telling the learner what to expect.
 
+  - M3 · Step 10 done. Commit `82dc305` pushed (3 commits total), origin/main matches.
+  - **Milestone 3 complete.**
+  - M4 · Step 1 given: create `sql/04_queries_1_10.sql` with header, `\connect`, and Q1 (`\echo` label + `SELECT title, genre, price FROM books ORDER BY price DESC, title;`). Expected: 21 rows, 1Q84 24.50 first, Animal Farm 7.50 last. Explained SELECT/FROM/ORDER BY, DESC/ASC, tie-breaker, clause order, why no ORDER BY = no guaranteed order.
+
+  - M4 · Step 1 done. Q1 correct (lines 1–10).
+  - Tool note: in Git Bash, `psql -f /sql/...` gets path-mangled (MSYS). Use `MSYS_NO_PATHCONV=1` or run SELECTs with `-c`.
+  - M4 · Step 2 given: Q2 `SELECT title, stock, price FROM books WHERE stock < 5 ORDER BY stock, title;`. Expected 7 rows: Emma 0, Homage to Catalonia 1, 1Q84 2, Chronicle of a Death Foretold 2, Arrow of God 3, The Poor Christ of Bomba 3, Kafka on the Shore 4.
+
+  - At M4 · Step 2 the learner asked for "the complete two queries files". Reminded them of tutor mode and offered: faster steps / one per step / full files. **Learner chose: show both full files** (tutor mode off for the queries). Learner still pastes the files; Claude does not write project files.
+  - Both files drafted in the scratchpad, all 20 run read-only against the data with ON_ERROR_STOP: no errors, results match hand calculations (genre revenue total = customer spend total = 535.57). Shown in chat in full.
+  - Conventions: "sold" = status shipped or delivered. 05 uses `\set as_of '2026-10-28'` and `:'as_of'::date` (psql only) so date answers don't drift.
+
+### Expected results (verified 2026-10-28)
+Q1 21 rows, 1Q84 24.50 → Animal Farm 7.50 · Q2 7 rows (Emma 0 first) · Q3 4: Aïcha, Chidi, Fatima, Emeka · Q4 21 rows · Q5 8 lines (orders 4, 8, 14, 20) · Q6 Toni Morrison · Q7 5 genres (Literary Fiction 7) · Q8 Classic 166.45, Literary Fiction 131.33, Magical Realism 106.40, Dystopian 99.43, Essay 31.96 · Q9 Chidi 161.14, Aïcha 92.34, Samuel 68.47, Emeka 60.86 · Q10 1984 7, Americanah 5, Things Fall Apart 5, Dear Ijeawele 4, Pride and Prejudice 4 · Q11 9 books > 13.10 · Q12 Arrow of God, Harmattan Letters, Homage to Catalonia · Q13 Aïcha, Chidi, Emeka, Samuel, Sophie · Q14 Thomas Wright, Brigitte Ateba · Q15 Aïcha, Grace, Jean-Paul, Samuel · Q16 1/6/14 · Q17 1 gold, 4 silver, 5 bronze, 2 new · Q18 2025: 11, 3.1, 7; 2026: 10, 2.6, 3 · Q19 orders 22 (16 d), 23 (8), 24 (3), 25 (1) · Q20 9 months, no April
+
+  - Learner pasted both files. Verified: identical to the tested drafts (ignoring CRLF), both run with ON_ERROR_STOP (exit 0), output identical to the reference run, 10 questions each.
+  - **"Finished when" fully met: 20 queries return correct results AND the schema rejects bad data.**
+  - **Milestone 4 complete** (understanding check not asked; learner opted out of tutor mode for the queries).
+  - M4 commit step given: `git add sql/04_queries_1_10.sql TUTOR_PROGRESS.md`, commit "Milestone 4: business queries 1-10 (SELECT, WHERE, JOINs, GROUP BY, HAVING)", push. Asked how to do the README.
+
 ## Next
-- Waiting for "done" on M3 · Step 10. Verify 4 commits? (3 commits: M1, M2, M3), origin/main matches.
-- Then: Milestone 3 complete → M4 · Step 1 (Q1). New file `sql/03_bad_data_tests.sql` (run with `\i`, without ON_ERROR_STOP, so each failure prints and the next test runs). Tests: negative price, price 0, ISBN with a dash, unknown author_id 99, stock -1. Each expects ERROR naming its constraint. Explain reading an error (ERROR line, DETAIL line, constraint name).
+- Waiting for "done" on the M4 commit + the learner's README choice.
+- Then: README.md (project summary, how to run 01→02→03, tests, queries; list all 20 questions with their query; conventions "sold" and as_of). Then M5 commit: `sql/05_queries_11_20.sql README.md TUTOR_PROGRESS.md` + push. Then project complete. New file `sql/03_bad_data_tests.sql` (run with `\i`, without ON_ERROR_STOP, so each failure prints and the next test runs). Tests: negative price, price 0, ISBN with a dash, unknown author_id 99, stock -1. Each expects ERROR naming its constraint. Explain reading an error (ERROR line, DETAIL line, constraint name).
 - Then: M3 · Step 8: part 2: duplicate email, bad email, status 'lost', shipped before ordered, quantity 0, duplicate (order, book), delete a sold book (FK refuses), delete an order (CASCADE removes lines — wrap in BEGIN/ROLLBACK so data stays).
