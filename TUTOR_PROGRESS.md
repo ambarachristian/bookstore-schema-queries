@@ -219,7 +219,11 @@ Q1 21 rows, 1Q84 24.50 → Animal Farm 7.50 · Q2 7 rows (Emma 0 first) · Q3 4:
   - **Milestone 4 complete** (understanding check not asked; learner opted out of tutor mode for the queries).
   - M4 commit step given: `git add sql/04_queries_1_10.sql TUTOR_PROGRESS.md`, commit "Milestone 4: business queries 1-10 (SELECT, WHERE, JOINs, GROUP BY, HAVING)", push. Asked how to do the README.
 
+  - M4 commit `cb4dba1` pushed. Learner said "done" without choosing full/steps for the README → went with full (it mostly repeats the queries).
+  - README built in the scratchpad (`README.md`, 364 lines): header written by Claude + the 20 queries extracted from the learner's own .sql files with an awk script (no retyping). Learner copies it into the repo with `Copy-Item` (they run it) and reviews it in VS Code preview.
+  - M5 final step given: copy README, preview, `git add sql/05_queries_11_20.sql README.md TUTOR_PROGRESS.md`, commit "Milestone 5: business queries 11-20 and README", push, check on GitHub (mermaid diagram renders).
+
 ## Next
-- Waiting for "done" on the M4 commit + the learner's README choice.
-- Then: README.md (project summary, how to run 01→02→03, tests, queries; list all 20 questions with their query; conventions "sold" and as_of). Then M5 commit: `sql/05_queries_11_20.sql README.md TUTOR_PROGRESS.md` + push. Then project complete. New file `sql/03_bad_data_tests.sql` (run with `\i`, without ON_ERROR_STOP, so each failure prints and the next test runs). Tests: negative price, price 0, ISBN with a dash, unknown author_id 99, stock -1. Each expects ERROR naming its constraint. Explain reading an error (ERROR line, DETAIL line, constraint name).
+- Waiting for "done". Verify: README.md in repo matches the scratchpad copy, 5 commits, origin/main matches, working tree clean.
+- Then: **project complete**. Offer (once) a short review quiz; suggest optional extras (e.g. indexes on FK columns, a book_authors junction table, a view for order totals) only if asked. New file `sql/03_bad_data_tests.sql` (run with `\i`, without ON_ERROR_STOP, so each failure prints and the next test runs). Tests: negative price, price 0, ISBN with a dash, unknown author_id 99, stock -1. Each expects ERROR naming its constraint. Explain reading an error (ERROR line, DETAIL line, constraint name).
 - Then: M3 · Step 8: part 2: duplicate email, bad email, status 'lost', shipped before ordered, quantity 0, duplicate (order, book), delete a sold book (FK refuses), delete an order (CASCADE removes lines — wrap in BEGIN/ROLLBACK so data stays).
