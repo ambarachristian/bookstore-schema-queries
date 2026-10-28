@@ -30,8 +30,8 @@ Windows 11, VS Code terminal is PowerShell.
 5. Add a schema to the same file and run it again. ✅
 6. Connect as `bookstore_app` and verify everything. ✅
 7. Understanding check. ⏭️ skipped; ask before M2
-8. Commit with git.
-9. Create a public GitHub repo and push.
+8. Commit with git. ✅
+9. Create a public GitHub repo and push. ✅
 
 ## Decisions so far
 - psql runs inside the container (`docker compose exec`), so nothing extra to install on Windows.
@@ -69,7 +69,66 @@ Windows 11, VS Code terminal is PowerShell.
   - Git config (read-only check): user.name "AMBARA Christian Evrard", email ambara.evrard@hotmail.com, core.autocrlf true, init.defaultBranch main. `gh` 2.96.0 installed, logged in as `ambarachristian` (https, repo scope).
   - M1 · Step 8 given: `.gitignore` (.vscode/, Thumbs.db, desktop.ini, .env), `git init`, `git status`, `git add .`, `git status`, `git commit -m "Milestone 1: PostgreSQL 16 in Docker with bookstore role, database and schema"`, `git log --oneline`.
 
+  - M1 · Step 8 done. Commit `5b9b7ec` "Milestone 1: ..." with .gitignore, TUTOR_PROGRESS.md, compose.yaml, sql/01_setup.sql. Repo name free on GitHub.
+  - Note: TUTOR_PROGRESS.md is tracked, so Claude's updates show as "modified". The learner commits it with each milestone.
+  - M1 · Step 9 given: `gh repo create bookstore-schema-queries --public --source=. --remote=origin --push --description "..."`, check `git remote -v`, `git status`, `gh repo view --web`.
+
+  - M1 · Step 9 done. Repo public: https://github.com/ambarachristian/bookstore-schema-queries (origin, main tracks origin/main, commit 5b9b7ec pushed).
+  - **Milestone 1 complete.**
+  - M2 warm-up given: the three M1 questions again, shortened.
+
+### Milestone 2 steps (expected), file `sql/02_schema.sql`
+1. Normalization: plan the five tables and how they connect (design as a comment block at the top of the file). ✅
+2. `authors` (primary key, identity, NOT NULL). ✅
+3. `books` (foreign key to authors, CHECK price > 0, UNIQUE isbn). ✅
+4. `customers` (UNIQUE email, NOT NULL). ✅
+5. `orders` (foreign key to customers, default order date, CHECK on status). ✅
+6. `order_items` (foreign keys to orders and books, CHECK quantity > 0, unit price). ✅
+7. Rebuild from zero (01 then 02) from PowerShell and inspect. ✅
+8. Understanding check. ⏭️ skipped
+9. Commit and push.
+
+  - Learner skipped the warm-up again ("step 1"). Accepted. Keep asking at milestone ends (their rule), but don't block on it.
+  - M2 · Step 1 given: create `sql/02_schema.sql` with header, `\connect bookstore bookstore_app`, and a DESIGN comment block (columns per table, relationships, choices: one author per book; order_items.unit_price = price paid). Explained normalization (anomalies, 1NF/2NF/3NF), PK, surrogate keys, FK, one-to-many, many-to-many/junction table, composite key.
+
+### Column plan (agreed in the design comment)
+- authors: author_id PK, first_name, last_name, country
+- books: book_id PK, title, isbn, genre, price, published_year, stock, author_id FK
+- customers: customer_id PK, first_name, last_name, email, city, joined_on
+- orders: order_id PK, order_date, shipped_date, status, customer_id FK
+- order_items: order_id FK, book_id FK, quantity, unit_price, PK (order_id, book_id)
+
+  - M2 · Step 1 done. `sql/02_schema.sql` lines 1–32 correct (header, `\connect`, design comment).
+  - M2 · Step 2 given: append DROP TABLE IF EXISTS for all five (order_items, orders, customers, books, authors) + `CREATE TABLE authors` (author_id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY, first_name text NOT NULL, last_name text NOT NULL, country text). Explained CREATE TABLE syntax, integer/text, identity (vs serial), PRIMARY KEY + index, NOT NULL and NULL, naming `author_id`.
+  - Note for M3: identity is GENERATED ALWAYS, so sample data must not supply IDs in INSERT; rely on 1..N order after a fresh rebuild (01 → 02 → 03). COPY with an explicit column list that leaves out the ID.
+
+  - M2 · Step 2 done. Lines 33–48 correct; `shop.authors` verified.
+  - M2 · Step 3 given: `CREATE TABLE books` (book_id identity PK, title NOT NULL, isbn NOT NULL UNIQUE CHECK (isbn ~ '^[0-9]{13}$'), genre, price numeric(8,2) NOT NULL CHECK (price > 0), published_year CHECK BETWEEN 1450 AND 2100, stock NOT NULL DEFAULT 0 CHECK (stock >= 0), author_id NOT NULL REFERENCES authors (author_id)). Explained numeric vs float, CHECK (NULL passes), pattern match, UNIQUE, DEFAULT, REFERENCES (both directions), auto constraint names.
+
+  - M2 · Step 3 done. `books` verified: 4 checks, books_isbn_key, books_author_id_fkey.
+  - M2 · Step 4 given: `CREATE TABLE customers` (customer_id identity PK, first_name/last_name NOT NULL, email text NOT NULL UNIQUE CHECK (email LIKE '%_@_%._%'), city text, joined_on date NOT NULL DEFAULT current_date). Explained LIKE (% and _), why email is UNIQUE but not the PK, exact-match limit of UNIQUE, date type and ISO format, current_date (server is UTC).
+
+  - M2 · Step 4 done. `customers` verified.
+  - M2 · Step 5 given: `CREATE TABLE orders` (order_id identity PK, customer_id NOT NULL REFERENCES customers, order_date date NOT NULL DEFAULT current_date, shipped_date date, status text NOT NULL DEFAULT 'pending' CHECK (status IN (...4 values)), table-level `CONSTRAINT shipped_after_ordered CHECK (shipped_date >= order_date)`). Explained IN (vs a lookup table), single vs double quotes, table-level vs column-level, naming a constraint, NULL passes again, why no `total` column.
+
+  - M2 · Step 5 done. `orders` verified.
+  - M2 · Step 6 given: `CREATE TABLE order_items` (order_id integer REFERENCES orders ON DELETE CASCADE, book_id integer REFERENCES books, quantity integer NOT NULL CHECK (quantity > 0), unit_price numeric(8,2) NOT NULL CHECK (unit_price > 0), PRIMARY KEY (order_id, book_id)). Explained composite PK as a table constraint (implies NOT NULL), ON DELETE CASCADE for order_id vs the default (refuse) for book_id, unit_price > 0 rules out free books.
+
+  - M2 · Step 6 done. `order_items` verified; 5 tables in shop.
+  - M2 · Step 7 given: rebuild from zero from PowerShell. Close psql first (DROP DATABASE fails if a session is connected). `docker compose exec db psql -U postgres -v ON_ERROR_STOP=1 -f /sql/01_setup.sql`, then `docker compose exec db psql -U bookstore_app -d bookstore -v ON_ERROR_STOP=1 -f /sql/02_schema.sql`, then `... -c "\dt"`. Explained -f, -c, ON_ERROR_STOP, file order.
+
+  - M2 · Step 7 done. Rebuild OK: 5 empty tables, 20 constraints in shop (1+7+3+4+5), no server errors.
+  - M2 · Step 8 given: three questions. (1) why order_items exists + two-column key. (2) book with no published_year: accepted or refused, why. (3) CASCADE on order_id but refuse on book_id: why.
+
+  - Learner skipped the M2 questions ("continue").
+  - M2 · Step 9 given: `git status`, `git add sql/02_schema.sql TUTOR_PROGRESS.md`, `git commit -m "Milestone 2: bookstore tables with keys and constraints"`, `git push`, `git log --oneline`.
+
+### Milestone 3 plan (draft), file `sql/03_data.sql` + `data/*.csv`
+- Permissions: server-side `COPY ... FROM '/data/x.csv'` needs superuser or `pg_read_server_files`; bookstore_app has neither. Use psql's `\copy` (client-side, runs as bookstore_app, reads /data inside the container). Explain the difference. `\copy` must be on one line.
+- Don't supply identity IDs. Load in order authors → books → customers → orders → order_items; IDs become 1..N on a fresh rebuild. Start 03 with TRUNCATE ... RESTART IDENTITY CASCADE so it can be re-run.
+- Data shape for the 20 queries: ~8 authors (one with no books), ~20 books across several genres (some never sold, one with stock 0, one with NULL published_year), ~12 customers in a few cities (some with no orders), ~25 orders over 2025–2026 with all four statuses (pending ones with NULL shipped_date), ~50 order_items.
+- Steps: 1 INSERT authors; 2 books.csv + `\copy`; 3 INSERT customers; 4 orders + order_items; 5 rebuild 01→02→03 and count rows; 6–7 bad-row tests (negative price, bad ISBN, duplicate email, unknown author_id, shipped before ordered, bad status, quantity 0), each must fail with its constraint name. Probably a separate file `sql/03_bad_data_tests.sql` run without ON_ERROR_STOP; 8 understanding check; 9 commit + push.
+
 ## Next
-- Waiting for "done" on M1 · Step 8. Verify with `git status`, `git log --oneline`, `git ls-files` (expect 4 files; empty `data/` is not tracked).
-- Then: M1 · Step 9: `gh repo create bookstore-schema-queries --public --source=. --remote=origin --push`, then check with `git remote -v`, `git status` ("up to date with 'origin/main'"), and open the repo in the browser (`gh repo view --web`).
-- Then: M1 complete → M1 understanding questions as warm-up → M2 · Step 1 (normalization, then authors table).
+- Waiting for "done" on M2 · Step 9. Verify `git log --oneline` (2 commits), `git status` clean apart from TUTOR_PROGRESS.md, origin/main matches.
+- Then: Milestone 2 complete → M3 · Step 1 (INSERT authors).
