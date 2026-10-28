@@ -1,0 +1,7 @@
+# Editor and operating-system files
+.vscode/
+Thumbs.db
+desktop.ini
+
+# Local secrets: never commit these
+.env
